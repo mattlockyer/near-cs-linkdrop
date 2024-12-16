@@ -26,7 +26,7 @@
         "vm-browserify": "^1.1.2"
     },
     "scripts": {
-        "test": "cd contract && ./build.sh && cd .. && ava",
+        "test": "cd contract && cargo near build --no-docker && cd .. && ava --serial --timeout 30s",
         "deploy": "cd cargo near",
         "build": "parcel build src/index.html",
         "start": "parcel src/index.html --open"
