@@ -2,39 +2,20 @@ use crate::*;
 use near_sdk::env::sha256;
 use omni_transaction::bitcoin::bitcoin_transaction::BitcoinTransaction;
 use omni_transaction::bitcoin::types::{
-    Amount, EcdsaSighashType, Hash, LockTime, OutPoint, ScriptBuf, Sequence, TxIn, TxOut, Txid,
-    Version, Witness,
+    Amount, EcdsaSighashType, Hash, LockTime, OutPoint, ScriptBuf, Sequence, TransactionType, TxIn,
+    TxOut, Txid, Version, Witness,
 };
+use omni_transaction::bitcoin::utils::{build_script_sig, serialize_ecdsa_signature_from_str};
 use omni_transaction::transaction_builder::TransactionBuilder;
 use omni_transaction::transaction_builder::TxBuilder;
 use omni_transaction::types::BITCOIN;
 
-pub fn get_tx_hash(
-    txid_str: &str,
-    vout: u32,
-    funder: &str,
-    receiver: &str,
-    amount: u128,
-    change: u128,
-) -> Vec<u8> {
-    let encoded = sighash_p2pkh(txid_str, vout, funder, receiver, amount, change);
-
-    println!("encoded length {:?}", encoded.len());
-    println!("{:?}", encoded);
-
-    sha256(&sha256(&encoded))
+pub fn sha256d(encoded_tx: Vec<u8>) -> Vec<u8> {
+    sha256(&sha256(&encoded_tx))
 }
 
-pub fn sighash_p2pkh(
-    txid_str: &str,
-    vout: u32,
-    funder: &str,
-    receiver: &str,
-    amount: u128,
-    change: u128,
-) -> Vec<u8> {
-    let omni_tx = get_tx(txid_str, vout, funder, receiver, amount, change);
-    omni_tx.build_for_signing_legacy(EcdsaSighashType::All)
+pub fn get_encoded_tx(tx: BitcoinTransaction) -> Vec<u8> {
+    tx.build_for_signing_legacy(EcdsaSighashType::All)
 }
 
 pub fn get_tx(
@@ -55,8 +36,8 @@ pub fn get_tx(
         witness: Witness::default(),
     };
 
-    let sender_script_pubkey = ScriptBuf(funder.as_bytes().to_vec());
-    let receiver_script_pubkey = ScriptBuf(receiver.as_bytes().to_vec());
+    let sender_script_pubkey = ScriptBuf(decode(funder).unwrap());
+    let receiver_script_pubkey = ScriptBuf(decode(receiver).unwrap());
 
     // The spend output is locked to a key controlled by the receiver.
     let spend_txout: TxOut = TxOut {
@@ -70,14 +51,59 @@ pub fn get_tx(
         script_pubkey: sender_script_pubkey,
     };
 
-    let omni_tx = TransactionBuilder::new::<BITCOIN>()
+    TransactionBuilder::new::<BITCOIN>()
         .version(Version::One)
         .inputs(vec![txin])
         .outputs(vec![spend_txout, change_txout])
         .lock_time(LockTime::from_height(0).unwrap())
-        .build();
+        .build()
+}
 
-    omni_tx
+// contract callback
+
+#[near]
+impl Contract {
+    #[private]
+    pub fn callback(
+        &mut self,
+        #[callback_result] call_result: Result<external::SignatureResponse, PromiseError>,
+        bitcoin_tx: BitcoinTransaction,
+        bitcoin_pubkey: Vec<u8>,
+    ) -> String {
+        self.remove_key_callback();
+
+        match call_result {
+            Ok(signature_response) => {
+                env::log_str(&format!(
+                    "Successfully received signature: big_r = {:?}, s = {:?}, recovery_id = {}",
+                    signature_response.big_r, signature_response.s, signature_response.recovery_id
+                ));
+
+                let signature = serialize_ecdsa_signature_from_str(
+                    &signature_response.big_r.affine_point,
+                    &signature_response.s.scalar,
+                );
+
+                let script_sig = build_script_sig(&signature, bitcoin_pubkey.as_slice());
+
+                let mut bitcoin_tx = bitcoin_tx;
+
+                // Update the transaction with the script_sig
+                let updated_tx = bitcoin_tx.build_with_script_sig(
+                    0,
+                    ScriptBuf(script_sig),
+                    TransactionType::P2PKH,
+                );
+
+                // Serialise the updated transaction
+                hex::encode(updated_tx)
+            }
+            Err(error) => {
+                env::log_str(&format!("Callback failed with error: {:?}", error));
+                "Callback failed".to_string()
+            }
+        }
+    }
 }
 
 #[test]
@@ -88,15 +114,6 @@ fn test_bitcoin_tx() {
     let receiver = "76a914b14da44077bd985df6eb9aa04fd18322a85ba30188ac";
     let amount = 100000000;
     let change = 899887000;
-
-    let hash = get_tx_hash(txid_str, vout, funder, receiver, amount, change);
-
-    println!("hash: {:?}", hash);
-
-    let expected_data =
-        decode("9b2a93111727551f7d29271483d286b8ff4d22ebcb6aa2a3074e3c259856823a").unwrap();
-
-    assert_eq!(hash, expected_data);
 }
 
 // #[test]

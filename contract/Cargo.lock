@@ -224,6 +224,7 @@ dependencies = [
  "hex",
  "near-sdk",
  "omni-transaction",
+ "schemars",
  "serde",
 ]
 
@@ -1054,9 +1055,9 @@ dependencies = [
 
 [[package]]
 name = "omni-transaction"
-version = "0.1.1"
+version = "0.1.2"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "50987428ee0d44b3e333ebf8ab27420bea653e3a31bc7531f3abcc40a94621c1"
+checksum = "a975a9a70511c9f84d5284821e5d767283b5c3f6789b038b47b34760985ecbc0"
 dependencies = [
  "borsh",
  "bs58 0.5.1",

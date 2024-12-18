@@ -2,55 +2,36 @@ import test from 'ava';
 import fs from 'fs';
 import * as dotenv from 'dotenv';
 dotenv.config();
+const { accountId, REACT_APP_contractId: contractId } = process.env;
 import * as nearAPI from 'near-api-js';
-import { runInThisContext } from 'vm';
-const { Near, Account, KeyPair, keyStores } = nearAPI;
-
-// near config for all tests
-const { REACT_APP_accountId: accountId, REACT_APP_secretKey: secretKey } =
-    process.env;
-const networkId = 'testnet';
-const keyPair = KeyPair.fromString(secretKey);
-const accessKeyPair = KeyPair.fromString(
-    'ed25519:5Da461pSxbSX8pc8L2SiQMwgHJJBYEovMVp7XgZRZLVbf1sk8pu139ie89MftYEQBJtN5dLc349FPXgUyBBE1mp1',
+const { KeyPair } = nearAPI;
+const dropKeyPair = KeyPair.fromString(
+    'ed25519:4Da461pSxbSX8pc8L2SiQMwgHJJBYEovMVp7XgZRZLVbf1sk8pu139ie89MftYEQBJtN5dLc349FPXgUyBBE1mp1',
 );
-const keyStore = new keyStores.InMemoryKeyStore();
-keyStore.setKey(networkId, accountId, keyPair);
-const config = {
-    networkId,
+
+import {
+    getAccount,
+    contractView,
+    contractCall,
+    keyPair,
     keyStore,
-    nodeUrl: 'https://rpc.testnet.near.org',
-    walletUrl: 'https://testnet.mynearwallet.com/',
-    helperUrl: 'https://helper.testnet.near.org',
-    explorerUrl: 'https://testnet.nearblocks.io',
-};
-const near = new Near(config);
-const { connection } = near;
-
-// config for drop contract
-
-const contractId = 'drop1.magical-part.testnet';
-keyStore.setKey(networkId, contractId, keyPair);
+    networkId,
+} from './near-provider.js';
 
 // tests
 
-test('account and balance test', async (t) => {
-    const account = new Account(near.connection, accountId);
-    const balance = await account.getAccountBalance();
-    // console.log(balance);
-    t.pass();
-});
+// delete the contract account to clear storage state and re-run tests
 
-test('delete, create and deploy contract', async (t) => {
+test('delete, create contract account', async (t) => {
     try {
-        const account = new Account(near.connection, contractId);
+        const account = getAccount(contractId);
         await account.deleteAccount(accountId);
     } catch (e) {
         console.log('error deleteAccount', e);
     }
 
     try {
-        const account = new Account(near.connection, accountId);
+        const account = getAccount(accountId);
         await account.createAccount(
             contractId,
             keyPair.getPublicKey(),
@@ -59,57 +40,65 @@ test('delete, create and deploy contract', async (t) => {
     } catch (e) {
         console.log('error createAccount', e);
     }
+    t.pass();
+});
 
-    try {
-        const file = fs.readFileSync('./contract/target/near/contract.wasm');
-        const account = new Account(near.connection, contractId);
-        await account.deployContract(file);
-        console.log('deployed bytes', file.byteLength);
-        const balance = await account.getAccountBalance();
-        console.log('contract balance', balance);
-    } catch (e) {
-        console.log('error deployContract', e);
-    }
+test('deploy contract', async (t) => {
+    const file = fs.readFileSync('./contract/target/near/contract.wasm');
+    const account = getAccount(contractId);
+    await account.deployContract(file);
+    console.log('deployed bytes', file.byteLength);
+    const balance = await account.getAccountBalance();
+    console.log('contract balance', balance);
 
     t.pass();
 });
 
 test('init contract', async (t) => {
-    const res = await contractCall({
+    await contractCall({
         contractId,
         methodName: 'init',
         args: {
             owner_id: accountId,
         },
     });
-    console.log(res);
+
     t.pass();
 });
 
 test('add drop', async (t) => {
-    const res = await contractCall({
+    await contractCall({
         contractId,
         methodName: 'add_drop',
         args: {
             target: 1,
-            amount: '100000000', // 1 doge
-            funder: 'nkMesrm1adEvqDMzPBf1cko3hYstpFr4BM',
+            amount: '100000000', // 1 BTC/LTC/doge
+            funder: '04a5bae52102176371f6afbb057113a7bd661babf2b87cc49fa5d5070ee8717cec76d4eaa47af6d1c47d06d770c434364b7265c0ffdcd279148269a026620ff2d9',
         },
     });
-    console.log(res);
+
     t.pass();
 });
 
 test('add drop key', async (t) => {
-    const res = await contractCall({
+    await contractCall({
         contractId,
         methodName: 'add_drop_key',
         args: {
             drop_id: '1',
-            key: accessKeyPair.getPublicKey().toString(),
+            key: dropKeyPair.getPublicKey().toString(),
         },
     });
-    console.log(res);
+
+    t.pass();
+});
+
+test('get contract access keys', async (t) => {
+    const account = getAccount(contractId);
+    const keys = await account.getAccessKeys();
+    console.log(keys);
+
+    t.is(keys.length, 2);
     t.pass();
 });
 
@@ -119,11 +108,12 @@ test('view drops', async (t) => {
         methodName: 'get_drops',
         args: {},
     });
-    console.log(res);
+
+    t.is(res.length, 1);
     t.pass();
 });
 
-test('view keys', async (t) => {
+test('view drop keys', async (t) => {
     const res = await contractView({
         contractId,
         methodName: 'get_keys',
@@ -131,85 +121,51 @@ test('view keys', async (t) => {
             drop_id: '1',
         },
     });
-    console.log(res);
+
+    t.is(res.length, 1);
     t.pass();
 });
 
-// helpers
+test('claim drop', async (t) => {
+    // switch to dropKeyPair for contractId account
+    keyStore.setKey(networkId, contractId, dropKeyPair);
 
-const gas = BigInt('300000000000000');
-const getAccount = (id = accountId) => new Account(connection, id);
+    const res = await contractCall({
+        accountId: contractId, // caller of method is contractId with dropKeyPair
+        contractId,
+        methodName: 'claim',
+        args: {
+            txid_str:
+                '613477e6c8533002ff7aa1943973dfad158522769a303035f50d8b44407b46c3',
+            vout: 0,
+            receiver:
+                '04a5bae52102176371f6afbb057113a7bd661babf2b87cc49fa5d5070ee8717cec76d4eaa47af6d1c47d06d770c434364b7265c0ffdcd279148269a026620ff2d9',
+            change: '899813010',
+        },
+    });
 
-const contractView = async ({ contractId, methodName, args = {} }) => {
-    const account = getAccount();
-    let res;
-    try {
-        res = await account.viewFunction({
-            contractId,
-            methodName,
-            args,
-            gas,
-        });
-    } catch (e) {
-        if (/deserialize/gi.test(JSON.stringify(e))) {
-            console.log(`Bad arguments to ${methodName} method`);
-        }
-        throw e;
-    }
-    return res;
-};
+    console.log('\n\nraw signed transaction:\n\n', res);
 
-const contractCall = async ({ contractId, methodName, args }) => {
-    const account = getAccount();
-    let res;
-    try {
-        res = await account.functionCall({
-            contractId,
-            methodName,
-            args,
-            gas,
-        });
-    } catch (e) {
-        if (/deserialize/gi.test(JSON.stringify(e))) {
-            return console.log(`Bad arguments to ${methodName} method`);
-        }
-        if (e.context?.transactionHash) {
-            console.log(
-                `Transaction timeout for hash ${e.context.transactionHash} will attempt to get tx result in 20s`,
-            );
-            await sleep(getTxTimeout);
-            return getTxSuccessValue(e.context.transactionHash);
-        }
-        throw e;
-    }
+    t.pass();
+});
 
-    return parseSuccessValue(res);
-};
+test('get contract access keys 2', async (t) => {
+    const account = getAccount(contractId);
+    const keys = await account.getAccessKeys();
 
-const getTxResult = async (txHash) => {
-    const transaction = await provider.txStatus(txHash, 'unnused');
-    return transaction;
-};
+    t.is(keys.length, 1);
+    t.pass();
+});
 
-const getTxSuccessValue = async (txHash) => {
-    const transaction = await getTxResult(txHash);
-    return parseSuccessValue(transaction);
-};
+test('view drop keys 2', async (t) => {
+    const res = await contractView({
+        contractId,
+        methodName: 'get_keys',
+        args: {
+            drop_id: '1',
+        },
+    });
 
-const parseSuccessValue = (transaction) => {
-    if (transaction.status.SuccessValue.length === 0) return;
-
-    try {
-        return JSON.parse(
-            Buffer.from(transaction.status.SuccessValue, 'base64').toString(
-                'ascii',
-            ),
-        );
-    } catch (e) {
-        console.log(
-            `Error parsing success value for transaction ${JSON.stringify(
-                transaction,
-            )}`,
-        );
-    }
-};
+    t.is(res.length, 1);
+    t.pass();
+});
