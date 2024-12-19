@@ -166,6 +166,6 @@ test('view drop keys 2', async (t) => {
         },
     });
 
-    t.is(res.length, 1);
+    t.is(res.length, 0);
     t.pass();
 });

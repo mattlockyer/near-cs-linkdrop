@@ -25,6 +25,7 @@ pub fn get_tx(
     receiver: &str,
     amount: u128,
     change: u128,
+    op_return_script: Option<Vec<u8>>,
 ) -> BitcoinTransaction {
     let hash = Hash::from_hex(txid_str).unwrap();
     let txid = Txid(hash);
@@ -36,25 +37,35 @@ pub fn get_tx(
         witness: Witness::default(),
     };
 
-    let sender_script_pubkey = ScriptBuf(decode(funder).unwrap());
-    let receiver_script_pubkey = ScriptBuf(decode(receiver).unwrap());
+    let mut outputs = vec![];
 
     // The spend output is locked to a key controlled by the receiver.
     let spend_txout: TxOut = TxOut {
         value: Amount::from_sat(amount as u64),
-        script_pubkey: receiver_script_pubkey,
+        script_pubkey: ScriptBuf::from_hex(receiver).unwrap(),
     };
+    outputs.push(spend_txout);
 
-    // utxo amount - amount - fee
+    // The change output: utxo amount - amount - fee, locked to key controlled by the funder
     let change_txout = TxOut {
         value: Amount::from_sat(change as u64),
-        script_pubkey: sender_script_pubkey,
+        script_pubkey: ScriptBuf::from_hex(funder).unwrap(),
     };
+    outputs.push(change_txout);
+
+    // OP_RETURN
+    if op_return_script.is_some() {
+        let op_return_txout = TxOut {
+            value: Amount::from_sat(0),
+            script_pubkey: ScriptBuf::from_bytes(op_return_script.unwrap()),
+        };
+        outputs.push(op_return_txout);
+    }
 
     TransactionBuilder::new::<BITCOIN>()
         .version(Version::One)
         .inputs(vec![txin])
-        .outputs(vec![spend_txout, change_txout])
+        .outputs(outputs)
         .lock_time(LockTime::from_height(0).unwrap())
         .build()
 }

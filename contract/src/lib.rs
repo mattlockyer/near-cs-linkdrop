@@ -21,7 +21,9 @@ pub struct Drop {
     target: u8,
     amount: u128,
     funder: String,
+    path: String,
     keys: Vec<String>,
+    op_return_script: Option<Vec<u8>>,
 }
 
 #[near(contract_state)]
@@ -48,16 +50,30 @@ impl Contract {
 
     // owner methods
 
-    pub fn add_drop(&mut self, target: u8, amount: U128, funder: String) {
+    pub fn add_drop(
+        &mut self,
+        target: u8,
+        amount: U128,
+        funder: String,
+        path: String,
+        op_return_hex: Option<String>,
+    ) {
         require!(env::predecessor_account_id() == self.owner_id);
         self.drop_id += 1;
+        let op_return_script = if op_return_hex.is_some() {
+            Some(decode(op_return_hex.unwrap()).unwrap())
+        } else {
+            None
+        };
         self.drop_by_id.insert(
             self.drop_id,
             Drop {
                 target,
                 amount: amount.0,
                 funder,
+                path,
                 keys: vec![],
+                op_return_script,
             },
         );
     }
@@ -107,13 +123,24 @@ impl Contract {
         let drop_id = self.drop_by_key.get(&key).unwrap();
         let drop = self.drop_by_id.get(drop_id).unwrap();
 
+        // extract drop params
         let amount = drop.amount;
         let funder = &drop.funder;
+        let path = &drop.path;
+        let op_return_script = drop.op_return_script.clone();
 
-        let tx = bitcoin_tx::get_tx(&txid_str, vout, &funder, &receiver, amount, change.0);
+        // create bitcoin tx
+        let tx = bitcoin_tx::get_tx(
+            &txid_str,
+            vout,
+            &funder,
+            &receiver,
+            amount,
+            change.0,
+            op_return_script,
+        );
         let encoded_tx = bitcoin_tx::get_encoded_tx(tx.clone());
         let payload = bitcoin_tx::sha256d(encoded_tx);
-        let path = "drop_path,1";
         let key_version = 0;
 
         ecdsa::get_sig(payload, path.to_owned(), key_version).then(
