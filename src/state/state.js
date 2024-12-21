@@ -12,23 +12,42 @@ const config = {
 
 let globalState = initState;
 
+const getStateForKeys = (keys) => {
+    let state = {};
+    if (keys.length > 1) {
+        keys.forEach((key) => (state[key] = getState(key)));
+    } else {
+        state = getState(keys[0]);
+    }
+    return state;
+};
+
 export const wrap = (Component, keys) => {
     if (!keys) keys = [GLOBAL_STATE_KEY];
     if (typeof keys === 'string') keys = [keys];
     if (!keys[0]) keys[0] = GLOBAL_STATE_KEY;
+
+    const initState = getStateForKeys(keys);
+
     const { name } = Component;
     let init = true;
     const wrapped = (props) => {
-        const [, update] = useState(false);
+        const [state, update] = useState(initState);
+
+        const _update = () => {
+            const state = getStateForKeys(keys);
+            update(state);
+        };
+
         if (init) {
             init = false;
-            subscribe(name, keys, update);
+            subscribe(name, keys, _update);
         }
         return (
             <Component
                 {...{
                     ...props,
-                    state: getState(keys[0]),
+                    state,
                     update: updateState(keys),
                 }}
             />
@@ -70,7 +89,6 @@ const updateState = (keys) => (newState, where) => {
 
     globalState = deepCopy(globalState, key, newState);
     const state = getState(key);
-
     const updates = updatesByKey[key];
     for (let i = 0; i < updates.length; i++) {
         updates[i](state);

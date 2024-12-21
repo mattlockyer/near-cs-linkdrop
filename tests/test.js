@@ -74,6 +74,7 @@ test('add drop', async (t) => {
             target: 1,
             amount: '100000000', // 1 BTC/LTC/doge
             funder: '04a5bae52102176371f6afbb057113a7bd661babf2b87cc49fa5d5070ee8717cec76d4eaa47af6d1c47d06d770c434364b7265c0ffdcd279148269a026620ff2d9',
+            path: 'ethereum,1',
         },
     });
 

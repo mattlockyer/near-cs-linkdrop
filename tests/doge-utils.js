@@ -1,5 +1,7 @@
-// requires .env var TATUM_API_KEY
+import * as dotenv from 'dotenv';
+dotenv.config();
 
+// requires .env var TATUM_API_KEY
 const dogeRpc = `https://api.tatum.io/v3/dogecoin`;
 
 export const dogePost = (path, body) =>

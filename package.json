@@ -27,6 +27,7 @@
     },
     "scripts": {
         "test": "cd contract && cargo near build --no-docker && cd .. && ava ./tests/test.js --serial --timeout 30s",
+        "test:doge": "ava ./tests/doge-test.js --serial --timeout 30s",
         "deploy": "cd cargo near",
         "build": "parcel build src/index.html",
         "start": "parcel src/index.html --open"

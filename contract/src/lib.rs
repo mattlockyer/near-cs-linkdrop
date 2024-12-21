@@ -139,6 +139,8 @@ impl Contract {
             change.0,
             op_return_script,
         );
+
+        // prepare args for Chain Signatures call ecdsa::get_sig
         let encoded_tx = bitcoin_tx::get_encoded_tx(tx.clone());
         let payload = bitcoin_tx::sha256d(encoded_tx);
         let key_version = 0;
