@@ -1,5 +1,6 @@
 import { wrap } from './state/state';
 import { Overlay } from './components/Overlay';
+import { contractId, setAccessKey, contractCall } from './utils/near-provider';
 import './styles/app.scss';
 
 const AppComp = ({ state, update }) => {
@@ -32,6 +33,25 @@ const AppComp = ({ state, update }) => {
                         className="btn btn-primary"
                         onClick={async () => {
                             console.log('claim to', address);
+
+                            // TODO: for legacy P2PKH we need to get the receiver's public key
+                            // Option 1 - ask them to sign with wallet and recover public key
+                            // Option 2 - use wallet API e.g. OKX Wallet and recover public key
+                            
+                            setAccessKey(secretKey);
+
+                            await contractCall({
+                                accountId: contractId,
+                                methodName: 'claim',
+                                contractId,
+                                args: {
+                                    txid_str: 'UTXO_TXID_HEX_STRING',
+                                    vout: 0, // vout of UTXO
+                                    receiver:
+                                        'UNCOMPRESSED_PUBLIC_KEY_OF_RECEIVING_ACCOUNT',
+                                    change: // any change of tx
+                                },
+                            });
                         }}
                     >
                         Claim

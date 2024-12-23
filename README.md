@@ -58,6 +58,53 @@ In the context of Chain Signatures + LinkDrops:
 
 [Further Documentation on LinkDrops](https://docs.near.org/build/primitives/linkdrop)
 
+## Claiming a LinkDrop
+
+Currently the smart contract creates a legacy P2PKH BTC transaction.
+
+In order to claim the LinkDrop you will need to provide the following arguments:
+
+```
+txid_str: String,
+vout: u32,
+receiver: String,
+change: U128,
+```
+
+The `txid_str` is the transaction ID string in HEX of the UTXO you are spending from for this drop. All funds for the drop could be coming from a single UTXO, or there could be multiple UTXOs that the drop is spending from. It's up to how you set up the drop.
+
+The `vout` is the index of the UTXO in the previous transaction, typically 0 if there is only 1 UTXO in the transaction.
+
+The receiver must be the full uncompressed public key of the receiving address.
+
+The change should be calculated off-chain by some API and it should be the UTXO amount - the drop amount - any fees. Change is sent back to the funder.
+
+## Example Frontend
+
+In the example frontend, using the utils in `utils/near-provider.js` you need to call `setAccessKey` using the secretKey provided in the drop link (typically passed through the URL Search Params e.g. ?secretKey=).
+
+Once the access key is set you can call `callContract` with your LinkDrop arguments and you will call the contract directly.
+
+Provided everything is accurate, the contract will return your `rawsignedtransaction` payload. This can be broadcast to the BTC style network of your choosing.
+
+## Runes on Bitcoin (WIP)
+
+When creating a drop as a funder, you have the option to provide `op_return_hex` which can specify if Runes are etched or transferred.
+
+The full drop args are:
+
+```
+target: u8,
+amount: U128,
+funder: String,
+path: String,
+op_return_hex: Option<String>,
+```
+
+Each time someone claims a drop, these args will be included in the final `rawsignedtransaction` returned by the NEAR Smart Contract.
+
+This transaction can then be broadcast to the network of your choosing.
+
 ## References
 
 [Omni Transaction Examples](https://github.com/Omni-rs/examples/tree/main/examples)
