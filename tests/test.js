@@ -2,7 +2,12 @@ import test from 'ava';
 import fs from 'fs';
 import * as dotenv from 'dotenv';
 dotenv.config();
-const { accountId, REACT_APP_contractId: contractId } = process.env;
+const {
+    accountId,
+    REACT_APP_contractId: contractId,
+    MPC_PUBLIC_KEY,
+} = process.env;
+import { generateAddress } from './kdf.js';
 import * as nearAPI from 'near-api-js';
 const { KeyPair } = nearAPI;
 const dropKeyPair = KeyPair.fromString(
@@ -66,13 +71,27 @@ test('init contract', async (t) => {
     t.pass();
 });
 
+test('funder public key with path ethereum,1', async (t) => {
+    const { address, publicKey } = await generateAddress({
+        publicKey: MPC_PUBLIC_KEY,
+        accountId: contractId,
+        path: 'ethereum,1',
+        chain: 'bitcoin',
+    });
+    console.log('\n\n');
+    console.log('address', address);
+    console.log('publicKey', publicKey);
+    console.log('\n\n');
+    t.pass();
+});
+
 test('add drop', async (t) => {
     await contractCall({
         contractId,
         methodName: 'add_drop',
         args: {
             target: 1,
-            amount: '100000000', // 1 BTC/LTC/doge
+            amount: '546', // sats
             funder: '04a5bae52102176371f6afbb057113a7bd661babf2b87cc49fa5d5070ee8717cec76d4eaa47af6d1c47d06d770c434364b7265c0ffdcd279148269a026620ff2d9',
             path: 'ethereum,1',
         },
@@ -137,15 +156,16 @@ test('claim drop', async (t) => {
         methodName: 'claim',
         args: {
             txid_str:
-                '613477e6c8533002ff7aa1943973dfad158522769a303035f50d8b44407b46c3',
+                '99537ad15284b3c456159f9bc40e24a88d81fa06d794b19bed2bf24002ce247e',
             vout: 0,
             receiver:
                 '04a5bae52102176371f6afbb057113a7bd661babf2b87cc49fa5d5070ee8717cec76d4eaa47af6d1c47d06d770c434364b7265c0ffdcd279148269a026620ff2d9',
-            change: '899813010',
+            change: '99861368',
         },
     });
 
     console.log('\n\nraw signed transaction:\n\n', res);
+    console.log('\n\n');
 
     t.pass();
 });
