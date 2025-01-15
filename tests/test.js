@@ -8,12 +8,6 @@ const {
     MPC_PUBLIC_KEY,
 } = process.env;
 import { generateAddress } from './kdf.js';
-import * as nearAPI from 'near-api-js';
-const { KeyPair } = nearAPI;
-const dropKeyPair = KeyPair.fromString(
-    'ed25519:4Da461pSxbSX8pc8L2SiQMwgHJJBYEovMVp7XgZRZLVbf1sk8pu139ie89MftYEQBJtN5dLc349FPXgUyBBE1mp1',
-);
-
 import {
     getAccount,
     contractView,
@@ -22,6 +16,23 @@ import {
     keyStore,
     networkId,
 } from './near-provider.js';
+import { getBalance, getChange } from './bitcoin.js';
+
+import * as nearAPI from 'near-api-js';
+const { KeyPair } = nearAPI;
+const dropKeyPair = KeyPair.fromString(
+    'ed25519:4Da461pSxbSX8pc8L2SiQMwgHJJBYEovMVp7XgZRZLVbf1sk8pu139ie89MftYEQBJtN5dLc349FPXgUyBBE1mp1',
+);
+
+// config const (optional move to .env)
+const MPC_PATH = 'bitcoin-drop,1';
+const DROP_SATS = 546;
+// based on MPC_PATH, will be set by tests
+let funderPublicKey = null;
+let funderAddress = null;
+let funderBalance = null;
+let funderTxId = null;
+let dropChange = null;
 
 // tests
 
@@ -71,7 +82,7 @@ test('init contract', async (t) => {
     t.pass();
 });
 
-test('funder public key with path ethereum,1', async (t) => {
+test(`funder public key with path: ${MPC_PATH}`, async (t) => {
     const { address, publicKey } = await generateAddress({
         publicKey: MPC_PUBLIC_KEY,
         accountId: contractId,
@@ -79,9 +90,39 @@ test('funder public key with path ethereum,1', async (t) => {
         chain: 'bitcoin',
     });
     console.log('\n\n');
-    console.log('address', address);
-    console.log('publicKey', publicKey);
-    console.log('\n\n');
+    console.log('funderAddress', address);
+    console.log('funderPublicKey', publicKey);
+
+    funderAddress = address;
+    funderPublicKey = publicKey;
+
+    t.true(!!funderAddress);
+    t.true(!!funderPublicKey);
+    t.pass();
+});
+
+test(`get balance for funderAddress`, async (t) => {
+    funderBalance = await getBalance({ address: funderAddress });
+    // console.log(`funder balance ${funderBalance}`);
+    t.true(parseInt(funderBalance) > 100000);
+    t.pass();
+});
+
+test(`get utxos for funderAddress`, async (t) => {
+    const utxos = await getBalance({ address: funderAddress, getUtxos: true });
+    // console.log(`funder max value utxo ${JSON.stringify(utxos[0])}`);
+    funderTxId = utxos[0].txid;
+    t.true(!!funderTxId);
+    t.pass();
+});
+
+test(`get change for drop tx`, async (t) => {
+    dropChange = await getChange({
+        balance: funderBalance,
+        sats: DROP_SATS,
+    });
+    console.log('drop change', dropChange);
+    t.true(dropChange > 0);
     t.pass();
 });
 
@@ -91,9 +132,9 @@ test('add drop', async (t) => {
         methodName: 'add_drop',
         args: {
             target: 1,
-            amount: '546', // sats
-            funder: '04a5bae52102176371f6afbb057113a7bd661babf2b87cc49fa5d5070ee8717cec76d4eaa47af6d1c47d06d770c434364b7265c0ffdcd279148269a026620ff2d9',
-            path: 'ethereum,1',
+            amount: DROP_SATS.toString(), // sats
+            funder: funderPublicKey,
+            path: MPC_PATH,
         },
     });
 
@@ -155,12 +196,10 @@ test('claim drop', async (t) => {
         contractId,
         methodName: 'claim',
         args: {
-            txid_str:
-                '99537ad15284b3c456159f9bc40e24a88d81fa06d794b19bed2bf24002ce247e',
+            txid_str: funderTxId,
             vout: 0,
-            receiver:
-                '04a5bae52102176371f6afbb057113a7bd661babf2b87cc49fa5d5070ee8717cec76d4eaa47af6d1c47d06d770c434364b7265c0ffdcd279148269a026620ff2d9',
-            change: '99861368',
+            receiver: funderPublicKey,
+            change: dropChange.toString(),
         },
     });
 
