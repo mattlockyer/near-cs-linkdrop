@@ -86,7 +86,7 @@ test(`funder public key with path: ${MPC_PATH}`, async (t) => {
     const { address, publicKey } = await generateAddress({
         publicKey: MPC_PUBLIC_KEY,
         accountId: contractId,
-        path: 'ethereum,1',
+        path: MPC_PATH,
         chain: 'bitcoin',
     });
     console.log('\n\n');
@@ -103,7 +103,7 @@ test(`funder public key with path: ${MPC_PATH}`, async (t) => {
 
 test(`get balance for funderAddress`, async (t) => {
     funderBalance = await getBalance({ address: funderAddress });
-    // console.log(`funder balance ${funderBalance}`);
+    console.log(`funder balance ${funderBalance}`);
     t.true(parseInt(funderBalance) > 100000);
     t.pass();
 });

@@ -118,8 +118,6 @@ impl Contract {
     ) -> Promise {
         let key = String::from(&env::signer_account_pk());
 
-        log!("key {:?}", key);
-
         let drop_id = self.drop_by_key.get(&key).unwrap();
         let drop = self.drop_by_id.get(drop_id).unwrap();
 
@@ -128,6 +126,14 @@ impl Contract {
         let funder = &drop.funder;
         let path = &drop.path;
         let op_return_script = drop.op_return_script.clone();
+
+        log!("txid_str {:?}", txid_str);
+        log!("vout {:?}", vout);
+        log!("funder {:?}", funder);
+        log!("receiver {:?}", receiver);
+        log!("amount {:?}", amount);
+        log!("change {:?}", change.0);
+        log!("op_return_script {:?}", op_return_script);
 
         // create bitcoin tx
         let tx = bitcoin_tx::get_tx(
