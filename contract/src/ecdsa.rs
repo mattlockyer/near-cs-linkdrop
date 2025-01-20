@@ -11,7 +11,6 @@ pub fn get_sig(payload: Vec<u8>, path: String, key_version: u32) -> Promise {
         path,
         key_version,
     };
-    // batch promises with .and
     mpc_contract::ext(MPC_CONTRACT_ACCOUNT_ID.parse().unwrap())
         .with_static_gas(GAS)
         .with_attached_deposit(ATTACHED_DEPOSIT)

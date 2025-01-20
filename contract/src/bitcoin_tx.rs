@@ -10,12 +10,31 @@ use omni_transaction::transaction_builder::TransactionBuilder;
 use omni_transaction::transaction_builder::TxBuilder;
 use omni_transaction::types::BITCOIN;
 
+use ripemd::{Digest, Ripemd160};
+
 pub fn sha256d(encoded_tx: Vec<u8>) -> Vec<u8> {
     sha256(&sha256(&encoded_tx))
 }
 
 pub fn get_encoded_tx(tx: BitcoinTransaction) -> Vec<u8> {
     tx.build_for_signing_legacy(EcdsaSighashType::All)
+}
+
+pub fn p2pkh_script_from_ucp(uncompressed_child_pubkey: &str) -> ScriptBuf {
+    log!("uncompressed_child_pubkey: {:?}", uncompressed_child_pubkey);
+
+    // OP_DUP, OP_HASH160, ripemd160, OP_EQUALVERIFY, OP_CHECKSIG
+    let mut hasher = Ripemd160::new();
+    hasher.update(sha256(&decode(uncompressed_child_pubkey).unwrap()));
+    let hash160 = hasher.finalize();
+    // len of hash160 should not overflow byte
+    let mut script_pubkey: Vec<u8> = vec![0x76, 0xa9, hash160.len() as u8];
+    script_pubkey.extend_from_slice(&hash160[..]);
+    script_pubkey.extend_from_slice(&[0x88, 0xac]);
+
+    log!("script_pubkey: {:?}", encode(&script_pubkey));
+
+    ScriptBuf::from_bytes(script_pubkey)
 }
 
 pub fn get_tx(
@@ -30,9 +49,12 @@ pub fn get_tx(
     let hash = Hash::from_hex(txid_str).unwrap();
     let txid = Txid(hash);
 
+    let funder_script_pubkey = p2pkh_script_from_ucp(funder);
+    let receiver_script_pubkey = p2pkh_script_from_ucp(receiver);
+
     let txin: TxIn = TxIn {
         previous_output: OutPoint::new(txid, vout),
-        script_sig: ScriptBuf::default(),
+        script_sig: funder_script_pubkey.clone(),
         sequence: Sequence::MAX,
         witness: Witness::default(),
     };
@@ -42,25 +64,27 @@ pub fn get_tx(
     // The spend output is locked to a key controlled by the receiver.
     let spend_txout: TxOut = TxOut {
         value: Amount::from_sat(amount as u64),
-        script_pubkey: ScriptBuf::from_hex(receiver).unwrap(),
+        script_pubkey: receiver_script_pubkey,
     };
     outputs.push(spend_txout);
 
     // The change output: utxo amount - amount - fee, locked to key controlled by the funder
     let change_txout = TxOut {
         value: Amount::from_sat(change as u64),
-        script_pubkey: ScriptBuf::from_hex(funder).unwrap(),
+        script_pubkey: funder_script_pubkey,
     };
     outputs.push(change_txout);
 
-    // OP_RETURN
-    if op_return_script.is_some() {
-        let op_return_txout = TxOut {
-            value: Amount::from_sat(0),
-            script_pubkey: ScriptBuf::from_bytes(op_return_script.unwrap()),
-        };
-        outputs.push(op_return_txout);
-    }
+    log!("outputs {:?}", outputs);
+
+    // // OP_RETURN
+    // if op_return_script.is_some() {
+    //     let op_return_txout = TxOut {
+    //         value: Amount::from_sat(0),
+    //         script_pubkey: ScriptBuf::from_bytes(op_return_script.unwrap()),
+    //     };
+    //     outputs.push(op_return_txout);
+    // }
 
     TransactionBuilder::new::<BITCOIN>()
         .version(Version::One)

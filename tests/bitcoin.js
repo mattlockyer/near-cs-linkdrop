@@ -5,10 +5,28 @@ const bitcoinRpc = `https://blockstream.info/${
     networkId === 'testnet' ? 'testnet' : ''
 }/api`;
 
+export const broadcast = async (body) => {
+    try {
+        const res = await fetch(`https://corsproxy.io/?url=${bitcoinRpc}/tx`, {
+            method: 'POST',
+            body,
+        });
+        if (res.status === 200) {
+            const hash = await res.text();
+            console.log('tx hash', hash);
+            return;
+        }
+        console.log(await res.text());
+        throw new Error('not 200');
+    } catch (e) {
+        console.log('error broadcasting bitcoin tx', JSON.stringify(e));
+    }
+};
+
 export const getChange = async ({ balance, sats }) => {
     const feeRate = await fetchJson(`${bitcoinRpc}/fee-estimates`);
     const estimatedSize = 1 * 148 + 2 * 34 + 10; // 1 utxo * 148
-    const fee = estimatedSize * (Math.ceil(feeRate[6]) + 5);
+    const fee = estimatedSize * Math.ceil(feeRate[6]);
     const change = balance - sats - fee;
     return change;
 };
@@ -33,6 +51,8 @@ export const getBalance = async ({ address, getUtxos = false }) => {
         if (utxos.length > 1) {
             utxos.length = 1;
         }
+
+        // console.log('utxos', utxos);
 
         if (!utxos || !utxos.length) {
             console.log(

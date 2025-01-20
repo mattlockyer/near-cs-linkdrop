@@ -1,4 +1,4 @@
-use hex::decode;
+use hex::{decode, encode};
 use near_sdk::{
     env::{self},
     json_types::U128,
@@ -127,7 +127,7 @@ impl Contract {
         let path = &drop.path;
         let op_return_script = drop.op_return_script.clone();
 
-        log!("txid_str {:?}", txid_str);
+        log!("path {:?}", drop.path);
         log!("vout {:?}", vout);
         log!("funder {:?}", funder);
         log!("receiver {:?}", receiver);

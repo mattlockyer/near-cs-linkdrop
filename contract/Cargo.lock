@@ -224,6 +224,7 @@ dependencies = [
  "hex",
  "near-sdk",
  "omni-transaction",
+ "ripemd",
  "schemars",
  "serde",
 ]
