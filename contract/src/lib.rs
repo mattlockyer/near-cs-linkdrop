@@ -54,6 +54,7 @@ impl Contract {
         &mut self,
         target: u8,
         amount: U128,
+        // funder is uncompressed btc public key
         funder: String,
         path: String,
         op_return_hex: Option<String>,
@@ -113,6 +114,7 @@ impl Contract {
         &mut self,
         txid_str: String,
         vout: u32,
+        // receiver is bs58 address
         receiver: String,
         change: U128,
     ) -> Promise {

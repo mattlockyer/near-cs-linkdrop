@@ -1,4 +1,5 @@
 use crate::*;
+use base58ck;
 use near_sdk::env::sha256;
 use omni_transaction::bitcoin::bitcoin_transaction::BitcoinTransaction;
 use omni_transaction::bitcoin::types::{
@@ -20,13 +21,29 @@ pub fn get_encoded_tx(tx: BitcoinTransaction) -> Vec<u8> {
     tx.build_for_signing_legacy(EcdsaSighashType::All)
 }
 
+pub fn p2pkh_script_from_address(address: &str) -> ScriptBuf {
+    log!("address: {:?}", address);
+
+    let hash160 = &base58ck::decode_check(address).unwrap()[1..];
+    // OP_DUP, OP_HASH160, ripemd160, OP_EQUALVERIFY, OP_CHECKSIG
+    // len of hash160 should not overflow byte
+    let mut script_pubkey: Vec<u8> = vec![0x76, 0xa9, hash160.len() as u8];
+    script_pubkey.extend_from_slice(&hash160[..]);
+    script_pubkey.extend_from_slice(&[0x88, 0xac]);
+
+    log!("script_pubkey: {:?}", encode(&script_pubkey));
+
+    ScriptBuf::from_bytes(script_pubkey)
+}
+
 pub fn p2pkh_script_from_ucp(uncompressed_child_pubkey: &str) -> ScriptBuf {
     log!("uncompressed_child_pubkey: {:?}", uncompressed_child_pubkey);
 
-    // OP_DUP, OP_HASH160, ripemd160, OP_EQUALVERIFY, OP_CHECKSIG
     let mut hasher = Ripemd160::new();
     hasher.update(sha256(&decode(uncompressed_child_pubkey).unwrap()));
     let hash160 = hasher.finalize();
+    // log!("hash160: {:?}", hash160);
+    // OP_DUP, OP_HASH160, ripemd160, OP_EQUALVERIFY, OP_CHECKSIG
     // len of hash160 should not overflow byte
     let mut script_pubkey: Vec<u8> = vec![0x76, 0xa9, hash160.len() as u8];
     script_pubkey.extend_from_slice(&hash160[..]);
@@ -50,7 +67,7 @@ pub fn get_tx(
     let txid = Txid(hash);
 
     let funder_script_pubkey = p2pkh_script_from_ucp(funder);
-    let receiver_script_pubkey = p2pkh_script_from_ucp(receiver);
+    let receiver_script_pubkey = p2pkh_script_from_address(receiver);
 
     let txin: TxIn = TxIn {
         previous_output: OutPoint::new(txid, vout),
@@ -142,39 +159,25 @@ impl Contract {
 }
 
 #[test]
-fn test_bitcoin_tx() {
-    let txid_str = "613477e6c8533002ff7aa1943973dfad158522769a303035f50d8b44407b46c3";
-    let vout = 0;
-    let funder = "76a914b14da44077bd985df6eb9aa04fd18322a85ba30188ac";
-    let receiver = "76a914b14da44077bd985df6eb9aa04fd18322a85ba30188ac";
-    let amount = 100000000;
-    let change = 899887000;
+fn test_p2pkh_script_from_ucp() {
+    let address = "mwVgE7n7nwtc3TtTDxN8c2gntFtVpBwBtK";
+    println!(
+        "ripe160 from address: {:?}",
+        &base58ck::decode_check(address).unwrap()[1..]
+    );
+
+    let ucp = "048393e4b554ced50402b2e9fcf765941fcbf3fa2b87c450873a0127dbb8cd7d214a4be00c690901a0eae20e50faf1957f30aecd9e34c7395d1f7bdb5d79123d8a";
+    let script_sig = decode("76a914af442f0d61233c9d3fdde22d36bfb6e3e441689088ac").unwrap();
+    let test_script_sig = p2pkh_script_from_ucp(ucp);
+
+    assert!(script_sig == test_script_sig.0);
 }
 
-// #[test]
-// fn test_bitcoin_tx() {
-//     let txid_str = "2ece6cd71fee90ff613cee8f30a52c3ecc58685acf9b817b9c467b7ff199871c";
-//     let vout = 0;
-//     let funder = "76a914cb8a3018cf279311b148cb8d13728bd8cbe95bda88ac";
-//     let receiver = "76a914406cf8a18b97a230d15ed82f0d251560a05bda0688ac";
-//     let amount = 500_000_000;
-//     let change = 100_000_000;
+#[test]
+fn test_p2pkh_script_from_address() {
+    let address = "mwVgE7n7nwtc3TtTDxN8c2gntFtVpBwBtK";
+    let script_sig = decode("76a914af442f0d61233c9d3fdde22d36bfb6e3e441689088ac").unwrap();
+    let test_script_sig = p2pkh_script_from_address(address);
 
-//     let sighash_p2pkh = sighash_p2pkh(txid_str, vout, funder, receiver, amount, change);
-
-//     println!("sighash_p2pkh: {:?}", sighash_p2pkh);
-
-//     let expected_data = vec![
-//         1, 0, 0, 0, 1, 28, 135, 153, 241, 127, 123, 70, 156, 123, 129, 155, 207, 90, 104, 88, 204,
-//         62, 44, 165, 48, 143, 238, 60, 97, 255, 144, 238, 31, 215, 108, 206, 46, 0, 0, 0, 0, 0,
-//         255, 255, 255, 255, 2, 0, 101, 205, 29, 0, 0, 0, 0, 50, 55, 54, 97, 57, 49, 52, 52, 48, 54,
-//         99, 102, 56, 97, 49, 56, 98, 57, 55, 97, 50, 51, 48, 100, 49, 53, 101, 100, 56, 50, 102,
-//         48, 100, 50, 53, 49, 53, 54, 48, 97, 48, 53, 98, 100, 97, 48, 54, 56, 56, 97, 99, 0, 225,
-//         245, 5, 0, 0, 0, 0, 50, 55, 54, 97, 57, 49, 52, 99, 98, 56, 97, 51, 48, 49, 56, 99, 102,
-//         50, 55, 57, 51, 49, 49, 98, 49, 52, 56, 99, 98, 56, 100, 49, 51, 55, 50, 56, 98, 100, 56,
-//         99, 98, 101, 57, 53, 98, 100, 97, 56, 56, 97, 99, 0, 0, 0, 0, 1, 0, 0, 0,
-//     ];
-
-//     assert!(!sighash_p2pkh.is_empty());
-//     assert_eq!(sighash_p2pkh, expected_data);
-// }
+    assert!(script_sig == test_script_sig.0);
+}

@@ -45,10 +45,26 @@ dependencies = [
 ]
 
 [[package]]
+name = "arrayvec"
+version = "0.7.6"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
+
+[[package]]
 name = "autocfg"
 version = "1.4.0"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "ace50bade8e6234aa140d9a2f552bbee1db4d353f69b8217bc503490fc1a9f26"
+
+[[package]]
+name = "base58ck"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "07e4d26096a7ff90260affbc43226e78340c0e4052237e52d19c40c6e6b04ae6"
+dependencies = [
+ "bitcoin-internals",
+ "bitcoin_hashes",
+]
 
 [[package]]
 name = "base64"
@@ -61,6 +77,31 @@ name = "base64"
 version = "0.22.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "72b3254f16251a8381aa12e40e3c4d2f0199f8c6508fbecb9d91f575e0fbb8c6"
+
+[[package]]
+name = "bitcoin-internals"
+version = "0.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "2b854212e29b96c8f0fe04cab11d57586c8f3257de0d146c76cb3b42b3eb9118"
+
+[[package]]
+name = "bitcoin-io"
+version = "0.2.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "26792cd2bf245069a1c5acb06aa7ad7abe1de69b507c90b490bca81e0665d0ee"
+dependencies = [
+ "bitcoin-internals",
+]
+
+[[package]]
+name = "bitcoin_hashes"
+version = "0.15.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "e0982261c82a50d89d1a411602afee0498b3e0debe3d36693f0c661352809639"
+dependencies = [
+ "bitcoin-io",
+ "hex-conservative",
+]
 
 [[package]]
 name = "bitflags"
@@ -221,6 +262,7 @@ dependencies = [
 name = "contract"
 version = "0.1.0"
 dependencies = [
+ "base58ck",
  "hex",
  "near-sdk",
  "omni-transaction",
@@ -570,6 +612,15 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7f24254aa9a54b5c858eaee2f5bccdb46aaf0e486a595ed5fd8f86ba55232a70"
 dependencies = [
  "serde",
+]
+
+[[package]]
+name = "hex-conservative"
+version = "0.3.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "4afe881d0527571892c4034822e59bb10c6c991cce6abe8199b6f5cf10766f55"
+dependencies = [
+ "arrayvec",
 ]
 
 [[package]]

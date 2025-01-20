@@ -243,7 +243,7 @@ test('claim drop', async (t) => {
         args: {
             txid_str: funderTxId,
             vout: 0,
-            receiver: funderPublicKey,
+            receiver: funderAddress,
             change: dropChange.toString(),
         },
     });
