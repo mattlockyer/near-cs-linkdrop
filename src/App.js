@@ -1,6 +1,13 @@
 import { wrap } from './state/state';
 import { Overlay } from './components/Overlay';
-import { contractId, setAccessKey, contractCall } from './utils/near-provider';
+import {
+    MPC_PATH,
+    MPC_PUBLIC_KEY,
+    setAccessKey,
+    contractCall,
+} from './utils/near-provider';
+import { generateAddress } from './utils/kdf';
+import { getChange } from './utils/bitcoin';
 import './styles/app.scss';
 
 const AppComp = ({ state, update }) => {
@@ -34,24 +41,55 @@ const AppComp = ({ state, update }) => {
                         onClick={async () => {
                             console.log('claim to', address);
 
-                            // TODO: for legacy P2PKH we need to get the receiver's public key
-                            // Option 1 - ask them to sign with wallet and recover public key
-                            // Option 2 - use wallet API e.g. OKX Wallet and recover public key
-
                             setAccessKey(secretKey);
 
-                            // await contractCall({
-                            //     accountId: contractId,
-                            //     methodName: 'claim',
-                            //     contractId,
-                            //     args: {
-                            //         txid_str: 'UTXO_TXID_HEX_STRING',
-                            //         vout: 0, // vout of UTXO
-                            //         receiver:
-                            //             'UNCOMPRESSED_PUBLIC_KEY_OF_RECEIVING_ACCOUNT',
-                            //         change: // any change of tx
-                            //     },
-                            // });
+                            const DROP_SATS = 546;
+                            let funderAddress = null;
+                            let funderBalance = null;
+                            let funderTxId = null;
+                            let dropChange = null;
+
+                            const { address, publicKey } =
+                                await generateAddress({
+                                    publicKey: MPC_PUBLIC_KEY,
+                                    accountId: contractId,
+                                    path: MPC_PATH,
+                                    chain: 'bitcoin',
+                                });
+
+                            console.log('funderAddress', address);
+                            console.log('funderPublicKey', publicKey);
+                            funderAddress = address;
+                            funderPublicKey = publicKey;
+
+                            funderBalance = await getBalance({
+                                address: funderAddress,
+                            });
+                            console.log(`funder balance ${funderBalance}`);
+
+                            const utxos = await getBalance({
+                                address: funderAddress,
+                                getUtxos: true,
+                            });
+                            funderTxId = utxos[0].txid;
+
+                            dropChange = await getChange({
+                                balance: funderBalance,
+                                sats: DROP_SATS,
+                            });
+                            console.log('drop change', dropChange);
+
+                            await contractCall({
+                                accountId: contractId,
+                                methodName: 'claim',
+                                contractId,
+                                args: {
+                                    txid_str: funderTxId,
+                                    vout: 0,
+                                    receiver: funderAddress,
+                                    change: dropChange.toString(),
+                                },
+                            });
                         }}
                     >
                         Claim

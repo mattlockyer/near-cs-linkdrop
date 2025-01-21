@@ -7,7 +7,8 @@ dotenv.config();
 const {
     accountId,
     REACT_APP_contractId: contractId,
-    MPC_PUBLIC_KEY,
+    REACT_APP_MPC_PUBLIC_KEY: MPC_PUBLIC_KEY,
+    REACT_APP_MPC_PATH: MPC_PATH,
 } = process.env;
 import { generateAddress } from './kdf.js';
 import {
@@ -26,8 +27,6 @@ const dropKeyPair = KeyPair.fromString(
     'ed25519:4Da461pSxbSX8pc8L2SiQMwgHJJBYEovMVp7XgZRZLVbf1sk8pu139ie89MftYEQBJtN5dLc349FPXgUyBBE1mp1',
 );
 
-// config const (optional move to .env)
-const MPC_PATH = 'bitcoin-drop,1';
 const DROP_SATS = 546;
 // based on MPC_PATH, will be set by tests
 let funderPublicKey = null;

@@ -4,7 +4,12 @@ import * as nearAPI from 'near-api-js';
 const { Near, Account, KeyPair, keyStores } = nearAPI;
 
 // configure for your linkdrop contract
-export const contractId = 'drop2.magical-part.testnet';
+const { REACT_APP_contractId, REACT_APP_MPC_PUBLIC_KEY, REACT_APP_MPC_PATH } =
+    process.env;
+
+export const contractId = REACT_APP_contractId;
+export const MPC_PATH = REACT_APP_MPC_PATH;
+export const MPC_PUBLIC_KEY = REACT_APP_MPC_PUBLIC_KEY;
 
 const networkId = 'testnet';
 const keyStore = new keyStores.InMemoryKeyStore();
