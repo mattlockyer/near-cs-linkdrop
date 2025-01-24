@@ -35,51 +35,6 @@ let funderBalance = null;
 let funderTxId = null;
 let dropChange = null;
 
-// tests
-
-// delete the contract account to clear storage state and re-run tests
-
-// curl -X POST https://mempool.space/testnet/api/tx -d
-
-// curl -X POST https://mempool.space/testnet/api/tx -d "010000000118c808995438652bd30ce5441906de370c3cde992e0d8982117943ee2a09f17b000000008a47304402205a8cea7ca1c9747a5aa6baeb004341e6176aa6a5774686b081362811cae61469022002bbf00f3a3a504ed3fc105bb3200cd321eb843c9ae06d1a165a2bf7aac81dda0141048393e4b554ced50402b2e9fcf765941fcbf3fa2b87c450873a0127dbb8cd7d214a4be00c690901a0eae20e50faf1957f30aecd9e34c7395d1f7bdb5d79123d8affffffff02220200000000000041048393e4b554ced50402b2e9fcf765941fcbf3fa2b87c450873a0127dbb8cd7d214a4be00c690901a0eae20e50faf1957f30aecd9e34c7395d1f7bdb5d79123d8a6ed796000000000041048393e4b554ced50402b2e9fcf765941fcbf3fa2b87c450873a0127dbb8cd7d214a4be00c690901a0eae20e50faf1957f30aecd9e34c7395d1f7bdb5d79123d8a00000000"
-
-// curl -X POST -sSLd "010000000118c808995438652bd30ce5441906de370c3cde992e0d8982117943ee2a09f17b000000008a47304402205a8cea7ca1c9747a5aa6baeb004341e6176aa6a5774686b081362811cae61469022002bbf00f3a3a504ed3fc105bb3200cd321eb843c9ae06d1a165a2bf7aac81dda0141048393e4b554ced50402b2e9fcf765941fcbf3fa2b87c450873a0127dbb8cd7d214a4be00c690901a0eae20e50faf1957f30aecd9e34c7395d1f7bdb5d79123d8affffffff02220200000000000041048393e4b554ced50402b2e9fcf765941fcbf3fa2b87c450873a0127dbb8cd7d214a4be00c690901a0eae20e50faf1957f30aecd9e34c7395d1f7bdb5d79123d8a6ed796000000000041048393e4b554ced50402b2e9fcf765941fcbf3fa2b87c450873a0127dbb8cd7d214a4be00c690901a0eae20e50faf1957f30aecd9e34c7395d1f7bdb5d79123d8a00000000" "https://mempool.space/testnet/api/tx"
-
-// test('recover pub key and signature', async (t) => {
-//     const publicKey =
-//         '048393e4b554ced50402b2e9fcf765941fcbf3fa2b87c450873a0127dbb8cd7d214a4be00c690901a0eae20e50faf1957f30aecd9e34c7395d1f7bdb5d79123d8a';
-//     const payload = Buffer.from([
-//         45, 225, 148, 128, 142, 250, 205, 166, 31, 95, 188, 126, 125, 206, 106,
-//         238, 88, 6, 27, 218, 204, 234, 71, 40, 160, 31, 10, 110, 23, 159, 209,
-//         238,
-//     ]);
-
-//     const sig = {
-//         r: Buffer.from(
-//             '02355875876880B4B4729811D601CE12D812E45AE44132AE7D485AEB210FC8EFE1'.substring(
-//                 2,
-//             ),
-//             'hex',
-//         ),
-//         s: Buffer.from(
-//             '753DB7A72E067D028BBF40EB0A341E773365C4F6F6BB20B34BD24CEF0418C971',
-//             'hex',
-//         ),
-//     };
-//     // debugging verification
-
-//     const key = ec.keyFromPublic(Buffer.from(publicKey, 'hex'));
-//     console.log('KEY X', key.getPublic().getX().toString('hex'));
-//     console.log('KEY Y', key.getPublic().getY().toString('hex'));
-//     const sig2 = { r: sig.r, s: sig.s };
-//     console.log('signature verification', key.verify(payload, sig2));
-
-//     const pubKey = ec.recoverPubKey(payload, sig2, 0);
-//     console.log('Recovered Public Key:', pubKey.encode('hex'));
-
-//     t.pass();
-// });
-
 test('delete, create contract account', async (t) => {
     try {
         const account = getAccount(contractId);

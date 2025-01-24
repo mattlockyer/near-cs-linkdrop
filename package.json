@@ -26,7 +26,9 @@
         "vm-browserify": "^1.1.2"
     },
     "scripts": {
-        "test": "cd contract && cargo near build --no-docker && cd .. && ava ./tests/test.js --serial --timeout 30s",
+        "test:full": "cd contract && cargo near build --no-docker && cd .. && ava ./tests/full-flow.test.js --serial --timeout 30s",
+        "test:create": "ava ./tests/create-drop.test.js --serial --timeout 30s",
+        "test:deploy": "cd contract && cargo near build --no-docker && cd .. && ava ./tests/deploy.test.js --serial --timeout 30s",
         "test:doge": "ava ./tests/doge-test.js --serial --timeout 30s",
         "deploy": "cd cargo near",
         "build": "parcel build src/index.html",

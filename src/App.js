@@ -15,6 +15,7 @@ const AppComp = ({ state, update }) => {
     const params = query ? new URLSearchParams(query) : null;
     const contractId = params ? params.get('contractId') : null;
     const secretKey = params ? params.get('secretKey') : null;
+    const from = params ? params.get('from') : null;
 
     const { address = '' } = state.app;
 
