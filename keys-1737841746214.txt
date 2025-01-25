@@ -1,1 +1,0 @@
-http://localhost:1234/?contractId=drop2.magical-part.testnet&secretKey=ed25519:3yrwAbp2cXmVqhmiTSPSrAVNG6Qn8thmJyeky5zC3iq1HT2WJrh8nEJnYHwVC9PCkZdSvpfE2Nw9mgD8PSUpiQrg&from=Matt
