@@ -7,7 +7,7 @@ import {
     contractCall,
 } from './utils/near-provider';
 import { generateAddress } from './utils/kdf';
-import { getChange } from './utils/bitcoin';
+import { broadcast, getChange, getBalance } from './utils/bitcoin';
 import './styles/app.scss';
 
 const AppComp = ({ state, update }) => {
@@ -17,22 +17,27 @@ const AppComp = ({ state, update }) => {
     const secretKey = params ? params.get('secretKey') : null;
     const from = params ? params.get('from') : null;
 
-    const { address = '' } = state.app;
+    const { address = 'mwVgE7n7nwtc3TtTDxN8c2gntFtVpBwBtK' } = state.app;
 
     return (
         <>
             <Overlay />
             <div className="container-fluid center">
                 <section>
-                    <h4>You Received a LinkDrop</h4>
+                    <h4>
+                        You Received a LinkDrop{from ? ` from ${from}` : ''}
+                    </h4>
                     <p>Enter your address to send the asset to your account.</p>
                 </section>
 
-                <section>
+                <section className="input">
                     <input
+                        className="form-control"
                         placeholder="bc1..."
                         value={address}
-                        onChange={(e) => update({ address: e.target.value })}
+                        onChange={(e) =>
+                            update({ address: e.target.value }, 'app')
+                        }
                     />
                 </section>
 
@@ -40,33 +45,33 @@ const AppComp = ({ state, update }) => {
                     <button
                         className="btn btn-primary"
                         onClick={async () => {
-                            console.log('claim to', address);
+                            update(
+                                { msg: 'claiming to ' + address },
+                                'overlay',
+                            );
 
-                            setAccessKey(secretKey);
+                            const isSet = await setAccessKey(secretKey);
+                            if (!isSet) {
+                                window.alert('link is invalid or already used');
+                                update({ msg: '' }, 'overlay');
+                                return;
+                            }
 
                             const DROP_SATS = 546;
-                            let funderAddress = null;
                             let funderBalance = null;
                             let funderTxId = null;
                             let dropChange = null;
 
-                            const { address, publicKey } =
+                            const { address: funderAddress } =
                                 await generateAddress({
                                     publicKey: MPC_PUBLIC_KEY,
                                     accountId: contractId,
                                     path: MPC_PATH,
                                     chain: 'bitcoin',
                                 });
-
-                            console.log('funderAddress', address);
-                            console.log('funderPublicKey', publicKey);
-                            funderAddress = address;
-                            funderPublicKey = publicKey;
-
                             funderBalance = await getBalance({
                                 address: funderAddress,
                             });
-                            console.log(`funder balance ${funderBalance}`);
 
                             const utxos = await getBalance({
                                 address: funderAddress,
@@ -78,9 +83,21 @@ const AppComp = ({ state, update }) => {
                                 balance: funderBalance,
                                 sats: DROP_SATS,
                             });
-                            console.log('drop change', dropChange);
 
-                            await contractCall({
+                            console.log('claimingAddress', address);
+                            console.log('funderAddress', funderAddress);
+                            console.log('funderTxId', funderTxId);
+                            console.log(`funderBalance ${funderBalance}`);
+                            console.log('dropChange', dropChange);
+
+                            if (!window.confirm('continue?')) return;
+
+                            update(
+                                { msg: 'waiting for NEAR signature' },
+                                'overlay',
+                            );
+
+                            const res = await contractCall({
                                 accountId: contractId,
                                 methodName: 'claim',
                                 contractId,
@@ -91,6 +108,23 @@ const AppComp = ({ state, update }) => {
                                     change: dropChange.toString(),
                                 },
                             });
+
+                            console.log('signedrawtx', res);
+
+                            update(
+                                { msg: 'broadcasting to Bitcoin network' },
+                                'overlay',
+                            );
+
+                            const res2 = await broadcast(res);
+                            update(
+                                { msg: 'broadcasting to Bitcoin network' },
+                                'overlay',
+                            );
+
+                            console.log('broadcast hash', res2);
+
+                            update({ msg: '' }, 'overlay');
                         }}
                     >
                         Claim

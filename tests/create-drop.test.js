@@ -48,7 +48,7 @@ test(`funder public key with path: ${MPC_PATH}`, async (t) => {
 
 test(`get balance for funderAddress`, async (t) => {
     funderBalance = await getBalance({ address: funderAddress });
-    console.log(`funder balance ${funderBalance}`);
+    console.log(`funderBalance ${funderBalance}`);
     t.true(parseInt(funderBalance) > 100000);
     t.pass();
 });
@@ -57,6 +57,7 @@ test(`get utxos for funderAddress`, async (t) => {
     const utxos = await getBalance({ address: funderAddress, getUtxos: true });
     // console.log(`funder max value utxo ${JSON.stringify(utxos[0])}`);
     funderTxId = utxos[0].txid;
+    console.log(`funderTxId ${funderTxId}`);
     t.true(!!funderTxId);
     t.pass();
 });
@@ -66,7 +67,7 @@ test(`get change for drop tx`, async (t) => {
         balance: funderBalance,
         sats: DROP_SATS,
     });
-    console.log('drop change', dropChange);
+    console.log('dropChange', dropChange);
     t.true(dropChange > 0);
     t.pass();
 });

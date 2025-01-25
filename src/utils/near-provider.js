@@ -28,9 +28,18 @@ const gas = BigInt('300000000000000');
 const getTxTimeout = 20000;
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
-export const setAccessKey = (secretKey) => {
+export const setAccessKey = async (secretKey) => {
     const keyPair = KeyPair.fromString(secretKey);
+    const account = getAccount();
+    const accessKeys = await account.getAccessKeys();
+    const publicKey = keyPair.getPublicKey().toString();
+    const accessKey = accessKeys.find((k) => k.public_key === publicKey);
+    if (!accessKey) {
+        console.log('no access key');
+        return false;
+    }
     keyStore.setKey(networkId, contractId, keyPair);
+    return true;
 };
 export const getAccount = (id = contractId) => new Account(connection, id);
 

@@ -26,7 +26,7 @@ export const broadcast = async (body) => {
 export const getChange = async ({ balance, sats }) => {
     const feeRate = await fetchJson(`${bitcoinRpc}/fee-estimates`);
     const estimatedSize = 1 * 148 + 2 * 34 + 10; // 1 utxo * 148
-    const fee = estimatedSize * Math.ceil(feeRate[6]);
+    const fee = estimatedSize * Math.ceil(feeRate[6] + 1);
     const change = balance - sats - fee;
     return change;
 };
