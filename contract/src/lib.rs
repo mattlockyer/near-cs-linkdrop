@@ -23,7 +23,7 @@ pub struct Drop {
     funder: String,
     path: String,
     keys: Vec<String>,
-    op_return_script: Option<Vec<u8>>,
+    op_return_hex: Option<String>,
 }
 
 #[near(contract_state)]
@@ -61,11 +61,6 @@ impl Contract {
     ) {
         require!(env::predecessor_account_id() == self.owner_id);
         self.drop_id += 1;
-        let op_return_script = if op_return_hex.is_some() {
-            Some(decode(op_return_hex.unwrap()).unwrap())
-        } else {
-            None
-        };
         self.drop_by_id.insert(
             self.drop_id,
             Drop {
@@ -74,9 +69,22 @@ impl Contract {
                 funder,
                 path,
                 keys: vec![],
-                op_return_script,
+                op_return_hex,
             },
         );
+    }
+
+    pub fn remove_drop(&mut self, drop_id: U128) {
+        require!(env::predecessor_account_id() == self.owner_id);
+
+        let drop = self.drop_by_id.get(&drop_id.0).unwrap().to_owned();
+        let promise = env::promise_batch_create(&env::current_account_id());
+        for key in drop.keys {
+            let pk: PublicKey = key.parse().unwrap();
+            env::promise_batch_action_delete_key(promise, &pk);
+        }
+
+        self.drop_by_id.remove(&drop_id.0);
     }
 
     pub fn add_drop_key(&mut self, drop_id: U128, key: String) {
@@ -127,7 +135,6 @@ impl Contract {
         let amount = drop.amount;
         let funder = &drop.funder;
         let path = &drop.path;
-        let op_return_script = drop.op_return_script.clone();
 
         log!("path {:?}", drop.path);
         log!("vout {:?}", vout);
@@ -135,7 +142,7 @@ impl Contract {
         log!("receiver {:?}", receiver);
         log!("amount {:?}", amount);
         log!("change {:?}", change.0);
-        log!("op_return_script {:?}", op_return_script);
+        log!("op_return_hex {:?}", drop.op_return_hex);
 
         // create bitcoin tx
         let tx = bitcoin_tx::get_tx(
@@ -145,7 +152,7 @@ impl Contract {
             &receiver,
             amount,
             change.0,
-            op_return_script,
+            drop.op_return_hex.to_owned(),
         );
 
         // prepare args for Chain Signatures call ecdsa::get_sig

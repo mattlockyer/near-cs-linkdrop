@@ -61,7 +61,7 @@ pub fn get_tx(
     receiver: &str,
     amount: u128,
     change: u128,
-    op_return_script: Option<Vec<u8>>,
+    op_return_hex: Option<String>,
 ) -> BitcoinTransaction {
     let hash = Hash::from_hex(txid_str).unwrap();
     let txid = Txid(hash);
@@ -94,14 +94,18 @@ pub fn get_tx(
 
     log!("outputs {:?}", outputs);
 
-    // // OP_RETURN
-    // if op_return_script.is_some() {
-    //     let op_return_txout = TxOut {
-    //         value: Amount::from_sat(0),
-    //         script_pubkey: ScriptBuf::from_bytes(op_return_script.unwrap()),
-    //     };
-    //     outputs.push(op_return_txout);
-    // }
+    // OP_RETURN
+    if op_return_hex.is_some() {
+        let data = decode(op_return_hex.unwrap()).unwrap();
+        let mut return_data = vec![0x6a, data.len() as u8];
+        return_data.extend_from_slice(&data);
+
+        let op_return_txout = TxOut {
+            value: Amount::from_sat(0),
+            script_pubkey: ScriptBuf::from_bytes(return_data),
+        };
+        outputs.push(op_return_txout);
+    }
 
     TransactionBuilder::new::<BITCOIN>()
         .version(Version::One)

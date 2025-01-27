@@ -20,6 +20,8 @@ Create `.env` in root.
 accountId=[YOUR_DEV_ACCOUNT_ID]
 secretKey=[YOUR_DEV_ACCOUNT_SECRET_KEY starting with ed25519:...]
 REACT_APP_contractId=[YOUR_CONTRACT_NAME].[YOUR_DEV_ACCOUNT_ID]
+REACT_APP_MPC_PUBLIC_KEY="secp256k1:4NfTiv3UsGahebgTaHyD9vF8KYKMBnfd6kh94mK6xv8fGBiJB8TBtFMP5WWXz6B89Ac1fbpzPwAvoyQebemHFwx3"
+REACT_APP_MPC_PATH="bitcoin-drop,1"
 ```
 
 It doesn't matter what you choose as the contract name, but it must be a `.[YOUR_DEV_ACCOUNT]` sub-account of your dev account.
@@ -29,14 +31,16 @@ NOTE: Your dev account should have more than 10 NEAR to create the sub account
 ## Testing
 
 ```
-yarn
-yarn test // run a full contract deployment and go through a simple claim
-yarn start // WIP frontend to claim linkdrops
+yarn				// install
+yarn test:full 		// build contract and run a full e2e test
+yarn test:deloy 	// build contract and redeploy
+yarn test:create 	// create a linkdrop and store it's link in a txt file in project root
+yarn start 			// frontend to claim linkdrops
 ```
 
-When running `yarn test` it will delete and recreate your contract account, deploy a new contract and run a basic drop + key + claim cycle.
+When running `yarn test:full` or `yarn test:deploy` it will delete and recreate the sub account you use for your contract. `REACT_APP_contractId` in your `.env`.
 
-Recommendation: to rapidly deploy the contract and test against it without the full cycle, create a new test file and run that.
+Recommendation: to rapidly test against contract features e.g. `add drop
 
 ## Overview of LinkDrops
 
