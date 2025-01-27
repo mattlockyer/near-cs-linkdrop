@@ -33,7 +33,7 @@ NOTE: Your dev account should have more than 10 NEAR to create the sub account
 ```
 yarn				// install
 yarn test:full 		// build contract and run a full e2e test
-yarn test:deloy 	// build contract and redeploy
+yarn test:deploy 	// build contract and redeploy
 yarn test:create 	// create a linkdrop and store it's link in a txt file in project root
 yarn start 			// frontend to claim linkdrops
 ```
