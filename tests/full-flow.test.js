@@ -33,6 +33,7 @@ let funderPublicKey = null;
 let funderAddress = null;
 let funderBalance = null;
 let funderTxId = null;
+let funderUtxoOut = null;
 let dropChange = null;
 
 test('delete, create contract account', async (t) => {
@@ -111,6 +112,7 @@ test(`get utxos for funderAddress`, async (t) => {
     const utxos = await getBalance({ address: funderAddress, getUtxos: true });
     // console.log(`funder max value utxo ${JSON.stringify(utxos[0])}`);
     funderTxId = utxos[0].txid;
+    funderUtxoOut = utxos[0].vout;
     t.true(!!funderTxId);
     t.pass();
 });
@@ -196,7 +198,7 @@ test('claim drop', async (t) => {
         methodName: 'claim',
         args: {
             txid_str: funderTxId,
-            vout: 0,
+            vout: funderUtxoOut,
             receiver: funderAddress,
             change: dropChange.toString(),
         },

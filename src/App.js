@@ -79,6 +79,8 @@ const AppComp = ({ state, update }) => {
                             });
                             funderTxId = utxos[0].txid;
 
+                            console.log();
+
                             dropChange = await getChange({
                                 balance: funderBalance,
                                 sats: DROP_SATS,
@@ -103,7 +105,7 @@ const AppComp = ({ state, update }) => {
                                 contractId,
                                 args: {
                                     txid_str: funderTxId,
-                                    vout: 0,
+                                    vout: utxos[0].vout,
                                     receiver: funderAddress,
                                     change: dropChange.toString(),
                                 },
