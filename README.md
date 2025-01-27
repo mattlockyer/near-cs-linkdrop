@@ -40,7 +40,7 @@ yarn start 			// frontend to claim linkdrops
 
 When running `yarn test:full` or `yarn test:deploy` it will delete and recreate the sub account you use for your contract. `REACT_APP_contractId` in your `.env`.
 
-Recommendation: to rapidly test against contract features e.g. `add drop
+Recommendation: to rapidly test against contract features from the client side without redeploying e.g. `add drop`, run `yarn test:deploy` then create a separate test file (based off of `create-drop.test.js`) to target your newly deployed contract with the client tests you wish.
 
 ## Overview of LinkDrops
 
