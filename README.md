@@ -4,6 +4,10 @@
 
 # WIP Chain Signatures LinkDrops
 
+## Brief Video Walkthough
+
+[![Workshop Video](https://img.youtube.com/vi/84ofct_wdV8/0.jpg)](https://youtu.be/84ofct_wdV8)
+
 ## Installation
 
 Requires `cargo-near` to be installed. Get started [here](https://github.com/near/cargo-near).
